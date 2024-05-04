@@ -2,6 +2,7 @@ import streamlit as st
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ChatMessageHistory
+from langchain_core.output_parsers import StrOutputParser
 
 st.title("Blog Outline Generator App \n with 🦜🔗 Langchain - Streamlit")
 
@@ -14,7 +15,7 @@ temperature_input = st.sidebar.slider("Select temperature", min_value=0.1,step=0
 
 def blog_outline(topic):
     # Instantiate LLM model
-    chat = ChatOpenAI(model_name=model_name, openai_api_key=openai_api_key, temperature=temperature_input)
+    llm = ChatOpenAI(model_name=model_name, openai_api_key=openai_api_key, temperature=temperature_input)
     # Prompt
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -25,18 +26,21 @@ def blog_outline(topic):
             MessagesPlaceholder(variable_name="topics")
         ]
     )
-    chain = prompt | chat
+
+    output_parser = StrOutputParser()
+
+    chain = prompt | llm | output_parser
 
     demo_ephemeral_chat_history = ChatMessageHistory()
     demo_ephemeral_chat_history.add_user_message(topic)
 
     response = chain.invoke({"topics": demo_ephemeral_chat_history.messages})
     # Print results
-    return st.info(response.content)
+    return st.info(response)
 
 
 with st.form("myform"):
-    topic_text = st.text_input("Enter prompt:", "")
+    topic_text = st.text_input("Enter a topic to generate blog outline:", "")
     submitted = st.form_submit_button("Submit")
     if not openai_api_key:
         st.info("Please add your OpenAI API key to continue.")
